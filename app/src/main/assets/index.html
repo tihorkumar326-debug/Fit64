@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FitGoal 64</title>
+<style>
+:root{--bg:#0f1a14;--card:#17261d;--line:#25402f;--g:#3ddc84;--t:#e8f3ec;--m:#8fb0a0}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--t);font:15px/1.45 system-ui,sans-serif;padding-bottom:76px}
+header{padding:18px 16px 6px}
+h1{margin:0;font-size:22px}
+.sub{color:var(--m);font-size:13px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;margin:10px 14px;padding:14px}
+h2{margin:0 0 10px;font-size:16px;color:var(--g)}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+label{display:block;font-size:12px;color:var(--m);margin-bottom:3px}
+input[type=number]{width:100%;padding:10px;border-radius:10px;border:1px solid var(--line);background:#0f1a14;color:var(--t);font-size:16px}
+button.main{width:100%;margin-top:12px;padding:12px;border:0;border-radius:10px;background:var(--g);color:#06210f;font-weight:700;font-size:15px}
+.bar{height:8px;background:#0f1a14;border-radius:6px;overflow:hidden;margin:4px 0 10px}
+.bar i{display:block;height:100%;background:var(--g);width:0}
+.small{font-size:12px;color:var(--m)}
+nav{position:fixed;bottom:0;left:0;right:0;display:flex;background:#0b130e;border-top:1px solid var(--line)}
+nav button{flex:1;padding:14px 0;background:none;border:0;color:var(--m);font-size:14px}
+nav button.on{color:var(--g);font-weight:700}
+.tab{display:none}.tab.on{display:block}
+.chk{display:flex;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+.chk:last-child{border:0}
+.chk input{width:22px;height:22px;accent-color:var(--g)}
+.done{text-decoration:line-through;color:var(--m)}
+canvas{width:100%;height:170px}
+.h{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--line);font-size:13px}
+.big{font-size:28px;font-weight:700}
+</style></head><body>
+<header><h1>FitGoal 64</h1><div class="sub">81 kg → 64 kg · slow, steady, strong</div></header>
+
+<section id="today" class="tab on">
+  <div class="card">
+    <div class="row">
+      <div><div class="small">Latest</div><div class="big" id="cur">81.0</div></div>
+      <div><div class="small">To go</div><div class="big" id="togo">17.0 kg</div></div>
+    </div>
+    <div class="bar"><i id="gbar"></i></div>
+    <div class="small" id="gtxt"></div>
+  </div>
+  <div class="card">
+    <h2>Today's check-in</h2>
+    <div class="row">
+      <div><label>Weight (kg)</label><input id="w" type="number" step="0.1" inputmode="decimal"></div>
+      <div><label>Calories (kcal)</label><input id="k" type="number" inputmode="numeric"></div>
+      <div><label>Protein (g)</label><input id="p" type="number" inputmode="numeric"></div>
+      <div><label>Water (L)</label><input id="l" type="number" step="0.1" inputmode="decimal"></div>
+    </div>
+    <button class="main" onclick="save()">Save today</button>
+    <div style="margin-top:14px">
+      <div class="small">Calories: <span id="kt">0</span> / 2000</div><div class="bar"><i id="kb"></i></div>
+      <div class="small">Protein: <span id="pt">0</span> / 130 g</div><div class="bar"><i id="pb"></i></div>
+      <div class="small">Water: <span id="lt">0</span> / 2.5 L</div><div class="bar"><i id="lb"></i></div>
+    </div>
+  </div>
+  <div class="card"><h2>Weight trend</h2><canvas id="chart"></canvas>
+    <div class="small">Judge progress by the 2–3 week average, not a single day.</div></div>
+  <div class="card"><h2>History</h2><div id="hist"></div></div>
+</section>
+
+<section id="meals" class="tab">
+  <div class="card"><h2>Targets</h2>
+    <p>About 1,900–2,100 kcal/day · protein 120–140 g · water 2–3 L.<br>
+    Aim for 0.4–0.7 kg loss per week. Adjust slowly after 2–3 weeks of data.</p></div>
+  <div class="card"><h2>Example Indian food day</h2>
+    <p><b>Breakfast:</b> 3 eggs + oats with milk + fruit</p>
+    <p><b>Lunch:</b> 2 rotis + dal + curd + vegetables/salad</p>
+    <p><b>Snack:</b> Roasted chana + milk + fruit</p>
+    <p><b>Dinner:</b> Soy chunks or paneer + 1–2 rotis + vegetables</p>
+    <p class="small">Keep roti/rice portions sensible; limit sugary drinks and excess oil.</p></div>
+</section>
+
+<section id="work" class="tab">
+  <div class="card"><h2 id="wtitle">Workout</h2><div id="wlist"></div>
+    <div class="small" style="margin-top:8px">Leave 1–3 reps in reserve. Add reps or a little backpack weight gradually. Stop if you feel sharp pain.</div></div>
+</section>
+
+<nav>
+  <button class="on" onclick="tab('today',this)">Today</button>
+  <button onclick="tab('meals',this)">Meals</button>
+  <button onclick="tab('work',this)">Workout</button>
+</nav>
+
+<script>
+var START=81, GOAL=64, KEY='fg64';
+var PLAN={
+ 1:['Upper','Push-ups 3x8–12','Backpack rows 3x10–12','Pike push-ups 3x6–10','Plank 3x30–45 sec'],
+ 2:['Legs','Squats 3x12–15','Reverse lunges 3x10/leg','Glute bridges 3x15','Calf raises 3x20'],
+ 3:['Recovery','Brisk walk 30–40 min','Gentle mobility'],
+ 4:['Upper','Push-ups 3x8–12','Backpack rows 3x10–12','Backpack shoulder press 3x10','Side plank 3x30 sec'],
+ 5:['Full body','Squats 3 sets','Push-ups 3 sets','Split squats 3 sets','Backpack rows 3 sets'],
+ 6:['Walk','Walk 40–45 min','Build toward 8,000–10,000 steps/day'],
+ 0:['Rest','Rest and recover','Sleep 7–9 hours']
+};
+function load(){try{return JSON.parse(localStorage.getItem(KEY))||{logs:{},checks:{}}}catch(e){return {logs:{},checks:{}}}}
+function store(s){try{localStorage.setItem(KEY,JSON.stringify(s))}catch(e){}}
+function today(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function $(i){return document.getElementById(i)}
+function tab(id,b){document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('on')});$(id).classList.add('on');
+ document.querySelectorAll('nav button').forEach(function(x){x.classList.remove('on')});b.classList.add('on');if(id==='today')render()}
+function save(){var s=load(),t=today(),o=s.logs[t]||{};
+ ['w','k','p','l'].forEach(function(f){var v=parseFloat($(f).value);if(!isNaN(v))o[f]=v});
+ s.logs[t]=o;store(s);render()}
+function pct(v,m){return Math.min(100,Math.round(v/m*100))+'%'}
+function render(){
+ var s=load(),t=today(),o=s.logs[t]||{},dates=Object.keys(s.logs).sort();
+ $('w').value=o.w||'';$('k').value=o.k||'';$('p').value=o.p||'';$('l').value=o.l||'';
+ $('kt').textContent=o.k||0;$('pt').textContent=o.p||0;$('lt').textContent=o.l||0;
+ $('kb').style.width=pct(o.k||0,2000);$('pb').style.width=pct(o.p||0,130);$('lb').style.width=pct(o.l||0,2.5);
+ var ws=dates.filter(function(d){return s.logs[d].w});
+ var cur=ws.length?s.logs[ws[ws.length-1]].w:START;
+ $('cur').textContent=cur.toFixed(1);
+ $('togo').textContent=Math.max(0,cur-GOAL).toFixed(1)+' kg';
+ var done=Math.max(0,Math.min(1,(START-cur)/(START-GOAL)));
+ $('gbar').style.width=Math.round(done*100)+'%';
+ $('gtxt').textContent=Math.round(done*100)+'% of the way · lost '+Math.max(0,START-cur).toFixed(1)+' kg';
+ var h='';dates.slice().reverse().slice(0,14).forEach(function(d){var x=s.logs[d];
+  h+='<div class="h"><span>'+d+'</span><span>'+(x.w?x.w+' kg ':'')+(x.k?'· '+x.k+' kcal ':'')+(x.p?'· '+x.p+'g P ':'')+(x.l?'· '+x.l+'L':'')+'</span></div>'});
+ $('hist').innerHTML=h||'<div class="small">No entries yet.</div>';
+ chart(ws.map(function(d){return s.logs[d].w}));
+ workout();
+}
+function chart(v){
+ var c=$('chart'),r=window.devicePixelRatio||1,W=c.clientWidth,H=c.clientHeight;
+ c.width=W*r;c.height=H*r;var x=c.getContext('2d');x.scale(r,r);x.clearRect(0,0,W,H);
+ var hi=Math.max(START,Math.max.apply(null,v.concat([START]))),lo=GOAL-1,p=24;
+ function Y(n){return p+(hi-n)/(hi-lo)*(H-2*p)}
+ x.strokeStyle='#25402f';x.fillStyle='#8fb0a0';x.font='11px sans-serif';
+ [START,GOAL].forEach(function(n){x.beginPath();x.moveTo(p,Y(n));x.lineTo(W-8,Y(n));x.stroke();x.fillText(n,2,Y(n)-3)});
+ if(!v.length)return;
+ x.strokeStyle='#3ddc84';x.fillStyle='#3ddc84';x.lineWidth=2;x.beginPath();
+ v.forEach(function(n,i){var px=v.length===1?W/2:p+10+i*(W-p-24)/(v.length-1);
+  if(i)x.lineTo(px,Y(n));else x.moveTo(px,Y(n))});x.stroke();
+ v.forEach(function(n,i){var px=v.length===1?W/2:p+10+i*(W-p-24)/(v.length-1);
+  x.beginPath();x.arc(px,Y(n),3.5,0,7);x.fill()});
+}
+function workout(){
+ var d=new Date().getDay(),pl=PLAN[d],s=load(),t=today(),ck=s.checks[t]||[];
+ $('wtitle').textContent='Today: '+pl[0];
+ var h='';pl.slice(1).forEach(function(e,i){var on=ck.indexOf(i)>-1;
+  h+='<label class="chk"><input type="checkbox" '+(on?'checked':'')+' onchange="tog('+i+')"><span class="'+(on?'done':'')+'">'+e+'</span></label>'});
+ $('wlist').innerHTML=h;
+}
+function tog(i){var s=load(),t=today(),ck=s.checks[t]||[],k=ck.indexOf(i);
+ if(k>-1)ck.splice(k,1);else ck.push(i);s.checks[t]=ck;store(s);workout()}
+render();
+</script></body></html>
